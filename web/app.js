@@ -308,7 +308,13 @@ function renderProviderDetail() {
     main.innerHTML = '<div class="empty">暂无供应商</div>';
     return;
   }
-  const kindLabel = p.kind === 'anthropic' ? 'Anthropic 兼容' : p.kind === 'openai' ? 'OpenAI 兼容' : (p.kind || '—');
+  const kindLabel =
+    settings.connectionLabels?.[p.id] ||
+    (p.kind === 'anthropic'
+      ? 'Anthropic 兼容'
+      : p.kind === 'openai'
+        ? 'OpenAI 兼容'
+        : p.kind || (p.baseURL ? 'API 直连' : '云端托管'));
   const todayRows = (snapshot?.today || []).filter((r) => r.provider === p.id);
   const modelIds = [...new Set([...p.models.map((m) => m.id), ...todayRows.map((r) => r.model)])];
 

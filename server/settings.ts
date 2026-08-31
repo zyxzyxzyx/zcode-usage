@@ -28,6 +28,8 @@ export interface Settings {
   prices: Record<string, ModelPrice>;
   /** 供应商显示名覆盖 */
   providerAliases: Record<string, string>;
+  /** 供应商"连接方式"标签覆盖（用量侧发现的云端供应商拿不到协议类型） */
+  connectionLabels: Record<string, string>;
   /** GitCode Pages 自动发布 */
   publish: PublishConfig;
 }
@@ -46,7 +48,11 @@ const DEFAULTS: Settings = {
     // 火山方舟网关的自定义供应商在 model_usage 里以 UUID 出现，这里给个可读名字
     'c528fecb-c921-43e8-bcb2-60732eba12cd': '火山方舟 Ark',
   },
-  publish: { enabled: true, intervalMin: 5 },
+  connectionLabels: {
+    // 同上：该供应商协议未知，设置页"连接方式"处显示这个标签
+    'c528fecb-c921-43e8-bcb2-60732eba12cd': '火山方舟网关',
+  },
+  publish: { enabled: true, intervalMin: 1 },
 };
 
 export function loadSettings(): Settings {
@@ -57,6 +63,7 @@ export function loadSettings(): Settings {
       providerQuotas: { ...DEFAULTS.providerQuotas, ...(raw.providerQuotas ?? {}) },
       prices: { ...DEFAULTS.prices, ...(raw.prices ?? {}) },
       providerAliases: { ...DEFAULTS.providerAliases, ...(raw.providerAliases ?? {}) },
+      connectionLabels: { ...DEFAULTS.connectionLabels, ...(raw.connectionLabels ?? {}) },
       publish: { ...DEFAULTS.publish, ...(raw.publish ?? {}) },
     };
   } catch {
@@ -80,7 +87,8 @@ export function normalizeSettings(input: unknown): Settings {
     providerQuotas: {},
     prices: {},
     providerAliases: {},
-    publish: { enabled: true, intervalMin: 5 },
+    connectionLabels: {},
+    publish: { enabled: true, intervalMin: 1 },
   };
   for (const [k, v] of Object.entries(raw.quotas ?? {})) {
     const n = Number(v);
@@ -110,6 +118,11 @@ export function normalizeSettings(input: unknown): Settings {
   for (const [k, v] of Object.entries(raw.providerAliases ?? {})) {
     if (typeof k === 'string' && typeof v === 'string' && v.trim()) {
       out.providerAliases[k] = v.trim().slice(0, 50);
+    }
+  }
+  for (const [k, v] of Object.entries(raw.connectionLabels ?? {})) {
+    if (typeof k === 'string' && typeof v === 'string' && v.trim()) {
+      out.connectionLabels[k] = v.trim().slice(0, 30);
     }
   }
   return out;
