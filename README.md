@@ -2,11 +2,14 @@
 
 监控 ZCode（智谱计划 / 火山方舟网关等所有供应商）的 Token 实时用量，界面包含「使用统计」与「模型设置」两个页面。
 
+**在线页面**：<https://zyxzyxzyx.github.io/zcode-usage/>（GitHub Pages 静态快照，本地每 5 分钟自动推送、页面每 60 秒自动拉取）
+
 **零依赖、零侵入**：只读 ZCode 本地 SQLite 数据库，不写 ZCode 任何文件，不需要 Docker / 数据库 / npm install。
 
 ## 快速开始
 
-- 双击 `启动仪表盘.bat`，或命令行运行：
+- 在线查看：直接打开上面的 GitHub Pages 地址（准实时，最迟 5 分钟 + 60 秒）
+- 本机实时（2 秒刷新）：双击 `启动仪表盘.bat`，或命令行运行：
 
   ```bash
   npm start        # 即 node server/index.ts
@@ -15,6 +18,24 @@
 - 浏览器打开 **http://127.0.0.1:5323**
 
 要求：Node.js ≥ 22.5（用到内置 `node:sqlite`）。可用环境变量 `PORT` / `HOST` / `ZCODE_DB` 覆盖端口、监听地址、数据库路径。
+
+## 在线页面是怎么"实时"的
+
+本机没有公网可访问的在线服务时，静态托管 + 定时快照是标准做法：
+
+1. 本地服务运行时，`server/publish.ts` 默认每 5 分钟把最新用量快照构建成
+   `index.html`（单文件自包含）+ `data.json`，提交到仓库的 `gh-pages` 分支（`git push --force`，始终单提交）
+2. GitHub Pages 自动部署；线上页面每 60 秒重新拉取 `data.json`（带时间戳参数穿透 CDN 缓存）
+3. 所以线上延迟 ≈ 发布间隔（5 分钟）+ 页面拉取（60 秒）；本机仪表盘才是 2 秒真·实时
+4. 也可手动立即发布：`npm run publish`
+
+凭据配置在 `data/publish.json`（**已被 .gitignore 排除，绝不入库**）：
+
+```json
+{ "platform": "github", "user": "<用户名>", "token": "<PAT，需 repo + Pages 权限>", "repo": "zcode-usage", "branch": "gh-pages" }
+```
+
+发布器首次推送后会自动调用 GitHub API 开通 Pages，无需手动操作。
 
 ## 功能
 
@@ -46,15 +67,17 @@
 
 ```
 server/
-  index.ts      HTTP 服务、REST/SSE 接口、静态托管
+  index.ts      HTTP 服务、REST/SSE 接口、静态托管、定时发布调度
   db.ts         只读 SQLite 访问与聚合查询
   providers.ts  供应商元数据（只读 config.json，绝不读取 apiKey）
-  settings.ts   额度/价格/别名设置（data/settings.json）
+  settings.ts   额度/价格/别名/发布设置（data/settings.json）
+  publish.ts    构建 dist（单文件自包含站点）并推送 gh-pages + 开通 Pages
 web/
   index.html / style.css / app.js
   vendor/echarts.min.js
 data/
-  settings.json 首次运行自动生成
+  settings.json 首次运行自动生成（额度/价格/发布开关）
+  publish.json  GitHub Pages 发布凭据（不入库）
 启动仪表盘.bat
 ```
 
@@ -64,3 +87,4 @@ data/
 - **数据库被锁**：ZCode 使用 WAL 模式，正常可并发只读；极少数情况下（WAL 需恢复）会退回普通打开，本服务自身不写任何业务表。
 - **端口冲突**：`PORT=5324 npm start`。
 - **服务端真实额度**：智谱计划的"今日余额"数字与 ZCode 桌面端可能不同——桌面端读的是服务端配额，本仪表盘是本地统计 + 手动额度，属预期差异。
+- **令牌安全**：`data/publish.json` 里的 GitHub PAT 具有仓库读写权限，切勿提交或外发；如怀疑泄露请立即在 GitHub → Settings → Developer settings → Personal access tokens 中撤销重建。

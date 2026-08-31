@@ -96,8 +96,9 @@ function renderStats() {
   renderHeat();
   renderTrend();
   renderDonut();
-  $('#stats-foot').innerHTML =
-    `数据源：<code>${esc(meta.dbPath || '')}</code>（只读）· 每 2 秒自动刷新 · 最后更新 ${new Date(snapshot.generatedAt).toLocaleTimeString('zh-CN')}`;
+  $('#stats-foot').innerHTML = STATIC_MODE
+    ? `GitCode 在线快照 · 发布于 ${new Date(staticData.publishedAt).toLocaleString('zh-CN')} · 页面每 60 秒自动拉取最新快照 · 本机运行仪表盘可 2 秒实时`
+    : `数据源：<code>${esc(meta.dbPath || '')}</code>（只读）· 每 2 秒自动刷新 · 最后更新 ${new Date(snapshot.generatedAt).toLocaleTimeString('zh-CN')}`;
   updateTitle();
 }
 
@@ -495,8 +496,19 @@ function bind() {
     };
   });
 
-  $('#export-btn').onclick = () =>
-    window.open(STATIC_MODE ? './usage.csv' : `/api/export?days=${trendDays}`, '_blank');
+  $('#export-btn').onclick = async () => {
+    if (STATIC_MODE) {
+      const csv = await fetch(`./usage.csv?t=${Date.now()}`).then((r) => r.text());
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'zcode-usage-30d.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    window.open(`/api/export?days=${trendDays}`, '_blank');
+  };
 
   window.addEventListener('resize', () => Object.values(charts).forEach((c) => c.resize()));
 }
@@ -505,12 +517,25 @@ async function init() {
   bind();
 
   if (STATIC_MODE) {
-    staticData = await fetch('./data.json').then((r) => r.json());
+    const loadStatic = () => fetch(`./data.json?t=${Date.now()}`).then((r) => r.json());
+    staticData = await loadStatic();
     snapshot = staticData.snapshot;
     settings = staticData.settings || settings;
     renderStats();
-    $('#stats-foot').innerHTML =
-      `GitCode Pages 静态快照 · 发布于 ${new Date(staticData.publishedAt).toLocaleString('zh-CN')} · 本机运行仪表盘可 2 秒实时刷新`;
+    // 每 60 秒拉取最新快照，跟随本地自动发布保持"准实时"
+    setInterval(async () => {
+      try {
+        staticData = await loadStatic();
+        snapshot = staticData.snapshot;
+        settings = staticData.settings || settings;
+        renderStats();
+        if (!$('#page-settings').hidden && !$('#provider-detail input:focus')) {
+          renderProviderDetail();
+        }
+      } catch {
+        /* 快照暂时拉不到时保留旧数据 */
+      }
+    }, 60000);
     return;
   }
 
