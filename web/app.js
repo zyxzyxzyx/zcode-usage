@@ -97,7 +97,7 @@ function renderStats() {
   renderTrend();
   renderDonut();
   $('#stats-foot').innerHTML = STATIC_MODE
-    ? `GitCode 在线快照 · 发布于 ${new Date(staticData.publishedAt).toLocaleString('zh-CN')} · 页面每 60 秒自动拉取最新快照 · 本机运行仪表盘可 2 秒实时`
+    ? `GitHub Pages 在线快照 · 发布于 ${new Date(staticData.publishedAt).toLocaleString('zh-CN')} · 页面每 60 秒自动拉取最新快照 · 本机运行仪表盘可 2 秒实时`
     : `数据源：<code>${esc(meta.dbPath || '')}</code>（只读）· 每 2 秒自动刷新 · 最后更新 ${new Date(snapshot.generatedAt).toLocaleTimeString('zh-CN')}`;
   updateTitle();
 }
@@ -257,7 +257,7 @@ async function loadSettingsPage() {
     }
     renderProviderList();
     renderProviderDetail();
-    $('#settings-foot').textContent = 'GitCode 静态快照为只读；额度与价格请在本地仪表盘中修改。';
+    $('#settings-foot').textContent = '在线快照为只读；额度与价格请在本地仪表盘中修改。';
     return;
   }
   try {
