@@ -1,0 +1,14 @@
+{
+  "name": "zcode-usage-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZCode（火山方舟网关/智谱计划）Token 用量实时统计仪表盘，只读 ZCode 本地数据库",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.ts",
+    "publish": "node server/publish.ts --run"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}
