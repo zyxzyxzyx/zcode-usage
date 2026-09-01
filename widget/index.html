@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' http://127.0.0.1:5323; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:" />
+<link rel="stylesheet" href="widget.css" />
+</head>
+<body>
+  <div id="card" class="card">
+    <div class="head">
+      <span class="dot" id="status-dot"></span>
+      <span class="name" id="p-name">火山方舟</span>
+      <span class="pct" id="p-pct">—</span>
+      <button class="icon-btn no-drag" id="btn-menu" title="菜单">⋮</button>
+    </div>
+    <div class="big-row">
+      <span class="big" id="p-remain">—</span>
+      <span class="big-sub">剩余 tokens</span>
+    </div>
+    <div class="bar"><div class="fill" id="p-fill"></div></div>
+    <div class="foot">
+      <span id="p-used">等待数据…</span>
+      <span class="reset">重置 23:59</span>
+    </div>
+
+    <div class="detail" id="detail">
+      <div class="d-row"><span>glm-5.3-flash[1m]</span><span id="d-m1">—</span></div>
+      <div class="d-row"><span>glm-5.3[1m]</span><span id="d-m2">—</span></div>
+      <div class="d-foot" id="d-updated">—</div>
+    </div>
+
+    <div class="offline" id="offline" hidden>
+      <span>数据服务未运行</span>
+      <button class="no-drag" id="btn-start">启动服务</button>
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

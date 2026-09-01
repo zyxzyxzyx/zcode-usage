@@ -1,0 +1,73 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+/* 整卡可拖拽；交互元素单独 no-drag */
+.card {
+  -webkit-app-region: drag;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #e6e8ec;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  padding: 12px 14px 10px;
+}
+
+.no-drag, .icon-btn, .offline button { -webkit-app-region: no-drag; }
+
+.head { display: flex; align-items: center; gap: 7px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex: none; }
+.dot.off { background: #9ca3af; }
+.dot.warn { background: #d97706; }
+.name { font-size: 13px; font-weight: 700; color: #1f2328; flex: 1; }
+.pct { font-size: 13px; font-weight: 700; color: #16a34a; }
+.pct.amber { color: #d97706; }
+.pct.red { color: #dc2626; }
+.pct.off { color: #9ca3af; }
+
+.icon-btn {
+  border: 0; background: transparent; color: #9ca3af;
+  font-size: 15px; line-height: 1; padding: 2px 4px; cursor: pointer; border-radius: 6px;
+}
+.icon-btn:hover { background: #f3f4f6; color: #374151; }
+
+.big-row { display: flex; align-items: baseline; gap: 7px; margin: 6px 0 7px; }
+.big { font-size: 24px; font-weight: 800; letter-spacing: 0.3px; color: #16a34a; }
+.big.amber { color: #d97706; }
+.big.red { color: #dc2626; }
+.big.off { color: #9ca3af; }
+.big-sub { font-size: 11px; color: #9ca3af; }
+
+.bar { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+.fill { height: 100%; width: 0%; border-radius: 999px; background: #16a34a; transition: width 0.5s; }
+.fill.amber { background: #d97706; }
+.fill.red { background: #dc2626; }
+
+.foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 7px; font-size: 11px; color: #6b7280;
+}
+
+.detail { display: none; margin-top: 9px; border-top: 1px solid #f0f1f3; padding-top: 8px; }
+.card.expanded .detail { display: block; }
+.d-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: #374151; padding: 2px 0;
+}
+.d-foot { font-size: 10px; color: #9ca3af; margin-top: 5px; }
+
+.offline {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; font-size: 11px; color: #b45309;
+  background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 5px 8px;
+}
+.offline button {
+  border: 0; background: #f59e0b; color: #fff; font-size: 11px;
+  padding: 3px 10px; border-radius: 6px; cursor: pointer;
+}
+.offline button:hover { background: #d97706; }

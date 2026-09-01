@@ -35,12 +35,17 @@ interface Snapshot {
   trend30?: ReturnType<typeof getTrend>;
   modelTotals?: ModelUsageRow[];
   today?: ModelUsageRow[];
+  quotaSettings?: {
+    providerQuotas: Record<string, number>;
+    providerAliases: Record<string, string>;
+  };
 }
 
 function buildSnapshot(): Snapshot {
   const meta: Snapshot['meta'] = { dbPath: resolveDbPath() };
   try {
     const daily = getDaily();
+    const { providerQuotas, providerAliases } = loadSettings();
     return {
       generatedAt: Date.now(),
       meta,
@@ -50,6 +55,8 @@ function buildSnapshot(): Snapshot {
       trend30: getTrend(30),
       modelTotals: getModelTotals(),
       today: getTodayByModel(),
+      // 供悬浮框等纯显示客户端计算剩余额度（不含任何密钥）
+      quotaSettings: { providerQuotas, providerAliases },
     };
   } catch (e) {
     return { generatedAt: Date.now(), meta: { ...meta, error: String((e as Error).message ?? e) } };
@@ -120,7 +127,11 @@ const MIME: Record<string, string> = {
 };
 
 function send(res: http.ServerResponse, code: number, body: string, type = 'application/json; charset=utf-8'): void {
-  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
+  res.writeHead(code, {
+    'Content-Type': type,
+    'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*',
+  });
   res.end(body);
 }
 function json(res: http.ServerResponse, code: number, obj: unknown): void {
@@ -193,6 +204,7 @@ const server = http.createServer(async (req, res) => {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
       });
       res.write(`event: snapshot\ndata: ${lastSnapJson || JSON.stringify(lastSnapObj)}\n\n`);
       sseClients.add(res);

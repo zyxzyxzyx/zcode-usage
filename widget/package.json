@@ -1,0 +1,13 @@
+{
+  "name": "zcode-usage-widget",
+  "version": "2.0.0",
+  "private": true,
+  "description": "ZCode 火山方舟网关总额度桌面悬浮框（v1.0 本地服务的纯显示客户端）",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.1.0"
+  }
+}
