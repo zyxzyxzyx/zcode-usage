@@ -15,7 +15,8 @@ const LOG_FILE = path.join(DATA_DIR, 'widget.log');
 const API = 'http://127.0.0.1:5323';
 const W = 264;
 const H_SMALL = 116;
-const H_BIG = 186;
+const H_ROW = 21; // 展开区每行明细高度
+const H_DETAIL_BASE = 36; // 展开区固定开销（分隔线 + 更新时间行）
 
 let win = null;
 let tray = null;
@@ -110,10 +111,12 @@ function createWindow() {
   });
 }
 
-function setExpanded(big) {
+function setExpanded(big, rows) {
   if (!win) return;
   const [x, y] = win.getPosition();
-  win.setBounds({ x, y, width: W, height: big ? H_BIG : H_SMALL });
+  const n = Math.max(0, Math.min(10, Number(rows) || 0));
+  const h = big ? Math.min(400, H_SMALL + H_DETAIL_BASE + n * H_ROW) : H_SMALL;
+  win.setBounds({ x, y, width: W, height: h });
 }
 
 function createTray() {
@@ -240,7 +243,10 @@ if (!gotLock) {
     createTray();
 
     ipcMain.handle('get-config', () => loadCfg());
-    ipcMain.on('expand', (_e, big) => setExpanded(Boolean(big)));
+    ipcMain.on('expand', (_e, opts) => {
+      const o = (typeof opts === 'object' && opts) || {};
+      setExpanded(Boolean(o.big), Number(o.rows));
+    });
     ipcMain.on('set-opacity', (_e, v) => {
       win?.setOpacity(v);
       saveCfg({ opacity: v });

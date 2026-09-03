@@ -59,6 +59,8 @@ html, body {
   display: flex; align-items: center; justify-content: space-between;
   font-size: 11px; color: #374151; padding: 2px 0;
 }
+.d-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-val { color: #6b7280; margin-left: 8px; }
 .d-foot { font-size: 10px; color: #9ca3af; margin-top: 5px; }
 
 .offline {

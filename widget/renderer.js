@@ -9,6 +9,7 @@ let pollTimer = null;
 let sseOk = false;
 let offlineSince = 0;
 let lastAutoStart = 0;
+let lastModelCount = 0;
 
 function trim1(x) {
   return x >= 10000 ? String(Math.round(x)) : x.toFixed(1).replace(/\.0$/, '');
@@ -69,14 +70,25 @@ function render(snap) {
   $('#p-used').textContent = `已用 ${used.toLocaleString('zh-CN')} / ${quota.toLocaleString('zh-CN')}`;
   setColor(level);
 
-  // 展开区：按模型明细（取用量最高的两个）
+  // 展开区：动态渲染该供应商今日用到的全部模型（新模型自动出现）
   const byModel = [...rows].sort((a, b) => b.tok - a.tok);
-  $('#d-m1').textContent = byModel[0] ? `${fmtTokens(byModel[0].tok)} · ${byModel[0].model}` : '今日暂无';
-  $('#d-m2').textContent = byModel[1] ? `${fmtTokens(byModel[1].tok)} · ${byModel[1].model}` : '';
+  lastModelCount = byModel.length;
+  $('#d-models').innerHTML = byModel.length
+    ? byModel
+        .map(
+          (r) =>
+            `<div class="d-row"><span class="d-name">${esc(r.model)}</span><span class="d-val">${fmtTokens(r.tok)}</span></div>`
+        )
+        .join('')
+    : '<div class="d-row"><span class="d-name">今日暂无用量</span></div>';
   $('#d-updated').textContent =
     `${sseOk ? '实时' : '轮询'} · 更新于 ${new Date(snap.generatedAt).toLocaleTimeString('zh-CN')}`;
 
   window.api.setTrayTooltip(`${name}剩余 ${trim1(remainPct)}%`);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 async function refresh() {
@@ -125,17 +137,17 @@ function connectSSE() {
   refresh();
 }
 
-/* 悬停展开 / 收起 */
+/* 悬停展开 / 收起（窗口高度随模型行数自适应） */
 const card = $('#card');
 card.addEventListener('mouseenter', () => {
   expanded = true;
   card.classList.add('expanded');
-  window.api.expand(true);
+  window.api.expand({ big: true, rows: lastModelCount });
 });
 card.addEventListener('mouseleave', () => {
   expanded = false;
   card.classList.remove('expanded');
-  window.api.expand(false);
+  window.api.expand({ big: false, rows: 0 });
 });
 
 $('#btn-menu').addEventListener('click', () => window.api.showMenu());
