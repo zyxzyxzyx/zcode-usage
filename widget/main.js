@@ -138,20 +138,54 @@ function createTray() {
         },
       },
       { label: '打开仪表盘', click: () => shell.openExternal(API) },
-      { label: '启动数据服务', click: () => startService() },
+      { label: '启动数据服务', click: () => startService('manual') },
       { type: 'separator' },
       { label: '退出悬浮框', click: () => { quitting = true; app.quit(); } },
     ])
   );
 }
 
-function startService() {
-  const bat = path.join(ROOT, '启动仪表盘.bat');
-  log('尝试拉起数据服务');
+let lastServiceStart = 0;
+
+/** 探测数据服务是否存活 */
+async function isServiceUp() {
   try {
-    spawn('cmd.exe', ['/c', `start "" "${bat}"`], { cwd: ROOT, detached: true, windowsHide: true }).unref();
+    const r = await fetch(`${API}/api/snapshot`, { signal: AbortSignal.timeout(1500) });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** 直接拉起 node 数据服务（绕过 bat/cmd 链——公司环境对 start 脚本链会"拒绝访问"）。
+ *  auto 触发时带 5 分钟冷却；服务已运行则跳过。 */
+async function startService(reason = 'manual') {
+  try {
+    if (await isServiceUp()) {
+      log('数据服务已在运行，跳过启动');
+      return true;
+    }
+  } catch {
+    /* 探测失败继续尝试拉起 */
+  }
+  const now = Date.now();
+  if (reason === 'auto' && now - lastServiceStart < 5 * 60000) return false;
+  lastServiceStart = now;
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const out = fs.openSync(path.join(DATA_DIR, 'server.log'), 'a');
+    const child = spawn('node', ['server/index.ts'], {
+      cwd: ROOT,
+      detached: true,
+      windowsHide: true,
+      stdio: ['ignore', out, out],
+    });
+    child.unref();
+    log(`已拉起数据服务 (${reason})`);
+    return true;
   } catch (e) {
-    log(`拉起失败: ${e}`);
+    log(`拉起数据服务失败: ${e}`);
+    return false;
   }
 }
 
@@ -212,7 +246,8 @@ if (!gotLock) {
       saveCfg({ opacity: v });
     });
     ipcMain.on('open-dashboard', () => shell.openExternal(API));
-    ipcMain.on('start-service', () => startService());
+    ipcMain.on('start-service', () => startService('manual'));
+    ipcMain.on('auto-start-service', () => startService('auto'));
     ipcMain.on('show-menu', () => {
       if (!win) return;
       buildContextMenu().popup({ window: win });

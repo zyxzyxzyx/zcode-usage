@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('api', {
   setOpacity: (v) => ipcRenderer.send('set-opacity', v),
   openDashboard: () => ipcRenderer.send('open-dashboard'),
   startService: () => ipcRenderer.send('start-service'),
+  autoStartService: () => ipcRenderer.send('auto-start-service'),
   showMenu: () => ipcRenderer.send('show-menu'),
   setTrayIcon: (dataUrl) => ipcRenderer.send('set-tray-icon', dataUrl),
   setTrayTooltip: (text) => ipcRenderer.send('set-tray-tooltip', text),

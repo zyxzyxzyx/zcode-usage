@@ -7,6 +7,8 @@ const $ = (sel) => document.querySelector(sel);
 let expanded = false;
 let pollTimer = null;
 let sseOk = false;
+let offlineSince = 0;
+let lastAutoStart = 0;
 
 function trim1(x) {
   return x >= 10000 ? String(Math.round(x)) : x.toFixed(1).replace(/\.0$/, '');
@@ -29,6 +31,11 @@ function setOnline(ok, warn) {
   const dot = $('#status-dot');
   dot.className = `dot ${ok ? '' : warn ? 'warn' : 'off'}`;
   $('#offline').hidden = ok;
+  if (ok) {
+    offlineSince = 0;
+  } else if (!offlineSince) {
+    offlineSince = Date.now();
+  }
   if (!ok) {
     setColor('off');
     $('#p-remain').textContent = '—';
@@ -80,7 +87,14 @@ async function refresh() {
     if (!sseOk) setOnline(true);
     render(snap);
   } catch {
-    if (!sseOk) setOnline(false);
+    if (!sseOk) {
+      setOnline(false);
+      // 离线自愈：持续 30 秒拿不到数据时自动拉起服务（5 分钟冷却，避免反复拉起）
+      if (offlineSince && Date.now() - offlineSince > 30000 && Date.now() - lastAutoStart > 300000) {
+        lastAutoStart = Date.now();
+        window.api.autoStartService();
+      }
+    }
   }
 }
 
