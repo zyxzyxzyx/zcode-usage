@@ -92,7 +92,8 @@ function scrub(text: string, token: string): string {
 
 function git(cwd: string, args: string[], token: string): string {
   try {
-    return execFileSync('git', args, { cwd, encoding: 'utf8' });
+    // windowsHide: 服务以无控制台方式常驻，不加会在每次 git 调用时弹出可见命令行窗口
+    return execFileSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
   } catch (e) {
     const err = e as { stderr?: unknown; stdout?: unknown; message?: unknown };
     throw new Error(scrub([err.stderr, err.stdout, err.message].map(String).join('\n'), token));
@@ -121,7 +122,7 @@ function rmrf(p: string): void {
   }
   if (!pathExists(p)) return;
   try {
-    spawnSync('rm', ['-rf', p], { stdio: 'ignore' });
+    spawnSync('rm', ['-rf', p], { stdio: 'ignore', windowsHide: true });
   } catch {
     /* 忽略，走兜底 */
   }
