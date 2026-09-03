@@ -15,10 +15,11 @@ import {
   getTodayByModel,
   getOverview,
   getDetailSince,
+  localDateStr,
   type ModelUsageRow,
 } from './db.ts';
 import { buildProviderList } from './providers.ts';
-import { loadSettings, saveSettings, normalizeSettings } from './settings.ts';
+import { loadSettings, saveSettings, normalizeSettings, resolveProviderQuotas } from './settings.ts';
 import { publishSafe } from './publish.ts';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -45,7 +46,7 @@ function buildSnapshot(): Snapshot {
   const meta: Snapshot['meta'] = { dbPath: resolveDbPath() };
   try {
     const daily = getDaily();
-    const { providerQuotas, providerAliases } = loadSettings();
+    const settings = loadSettings();
     return {
       generatedAt: Date.now(),
       meta,
@@ -55,8 +56,12 @@ function buildSnapshot(): Snapshot {
       trend30: getTrend(30),
       modelTotals: getModelTotals(),
       today: getTodayByModel(),
-      // 供悬浮框等纯显示客户端计算剩余额度（不含任何密钥）
-      quotaSettings: { providerQuotas, providerAliases },
+      // 供悬浮框等纯显示客户端计算剩余额度（不含任何密钥）；
+      // 额度经过生效日期解析（providerQuotasScheduled 到期自动应用）
+      quotaSettings: {
+        providerQuotas: resolveProviderQuotas(settings, localDateStr(new Date())),
+        providerAliases: settings.providerAliases,
+      },
     };
   } catch (e) {
     return { generatedAt: Date.now(), meta: { ...meta, error: String((e as Error).message ?? e) } };

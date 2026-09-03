@@ -19,16 +19,22 @@ export interface PublishConfig {
   intervalMin: number; // 推送间隔（分钟）
 }
 
+export interface ScheduledQuota {
+  value: number; // 元/日额度 tokens
+  effectiveFrom: string; // 生效日期（本地时区），YYYY-MM-DD，当日 00:00 起生效
+}
+
 export interface Settings {
   /** 单模型额度（每日重置），键：`providerId|modelId` */
   quotas: Record<string, number>;
   /** 供应商级总额度（每日重置，全模型共享），键：`providerId` */
   providerQuotas: Record<string, number>;
+  /** 未来生效的供应商总额度变更；到达 effectiveFrom 后由服务端自动应用 */
+  providerQuotasScheduled?: Record<string, ScheduledQuota>;
   /** 单价，键：`providerId|modelId` */
   prices: Record<string, ModelPrice>;
   /** 供应商显示名覆盖 */
-  providerAliases: Record<string, string>;
-  /** 供应商"连接方式"标签覆盖（用量侧发现的云端供应商拿不到协议类型） */
+  providerAliases: Record<string, string>;  /** 供应商"连接方式"标签覆盖（用量侧发现的云端供应商拿不到协议类型） */
   connectionLabels: Record<string, string>;
   /** GitCode Pages 自动发布 */
   publish: PublishConfig;
@@ -61,6 +67,10 @@ export function loadSettings(): Settings {
     return {
       quotas: { ...DEFAULTS.quotas, ...(raw.quotas ?? {}) },
       providerQuotas: { ...DEFAULTS.providerQuotas, ...(raw.providerQuotas ?? {}) },
+      providerQuotasScheduled: {
+        ...DEFAULTS.providerQuotasScheduled,
+        ...(raw.providerQuotasScheduled ?? {}),
+      },
       prices: { ...DEFAULTS.prices, ...(raw.prices ?? {}) },
       providerAliases: { ...DEFAULTS.providerAliases, ...(raw.providerAliases ?? {}) },
       connectionLabels: { ...DEFAULTS.connectionLabels, ...(raw.connectionLabels ?? {}) },
@@ -80,11 +90,22 @@ export function saveSettings(s: Settings): void {
   fs.renameSync(tmp, FILE);
 }
 
+/** 应用已到生效日期的额度变更，返回解析后的供应商额度表（不改原始配置）。
+ *  日期为本地时区，effectiveFrom 当日 00:00 起生效。 */
+export function resolveProviderQuotas(s: Settings, todayStr: string): Record<string, number> {
+  const resolved = { ...s.providerQuotas };
+  for (const [pid, sched] of Object.entries(s.providerQuotasScheduled ?? {})) {
+    if (todayStr >= sched.effectiveFrom) resolved[pid] = sched.value;
+  }
+  return resolved;
+}
+
 export function normalizeSettings(input: unknown): Settings {
   const raw = (input ?? {}) as Partial<Settings>;
   const out: Settings = {
     quotas: {},
     providerQuotas: {},
+    providerQuotasScheduled: {},
     prices: {},
     providerAliases: {},
     connectionLabels: {},
@@ -100,6 +121,19 @@ export function normalizeSettings(input: unknown): Settings {
     const n = Number(v);
     if (typeof k === 'string' && Number.isFinite(n) && n >= 0) {
       out.providerQuotas[k] = Math.round(n);
+    }
+  }
+  for (const [k, v] of Object.entries(raw.providerQuotasScheduled ?? {})) {
+    const n = Number((v as Partial<ScheduledQuota>)?.value);
+    const d = (v as Partial<ScheduledQuota>)?.effectiveFrom;
+    if (
+      typeof k === 'string' &&
+      Number.isFinite(n) &&
+      n >= 0 &&
+      typeof d === 'string' &&
+      /^\d{4}-\d{2}-\d{2}$/.test(d)
+    ) {
+      out.providerQuotasScheduled![k] = { value: Math.round(n), effectiveFrom: d };
     }
   }
   const pRaw = (raw.publish ?? {}) as Partial<PublishConfig>;
