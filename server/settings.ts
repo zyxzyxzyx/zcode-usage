@@ -64,7 +64,7 @@ const DEFAULTS: Settings = {
 export function loadSettings(): Settings {
   try {
     const raw = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-    return {
+    const s: Settings = {
       quotas: { ...DEFAULTS.quotas, ...(raw.quotas ?? {}) },
       providerQuotas: { ...DEFAULTS.providerQuotas, ...(raw.providerQuotas ?? {}) },
       providerQuotasScheduled: {
@@ -76,11 +76,34 @@ export function loadSettings(): Settings {
       connectionLabels: { ...DEFAULTS.connectionLabels, ...(raw.connectionLabels ?? {}) },
       publish: { ...DEFAULTS.publish, ...(raw.publish ?? {}) },
     };
+    return promoteDueScheduled(s);
   } catch {
     const s = structuredClone(DEFAULTS);
     saveSettings(s);
     return s;
   }
+}
+
+function localTodayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** 把已到生效日期的额度变更"转正"：写入 providerQuotas 并移除排期（持久化，保证各处一致） */
+function promoteDueScheduled(s: Settings): Settings {
+  const today = localTodayStr();
+  let changed = false;
+  for (const [pid, sched] of Object.entries(s.providerQuotasScheduled ?? {})) {
+    if (today >= sched.effectiveFrom) {
+      if (s.providerQuotas[pid] !== sched.value) {
+        s.providerQuotas[pid] = sched.value;
+      }
+      delete s.providerQuotasScheduled[pid];
+      changed = true;
+    }
+  }
+  if (changed) saveSettings(s);
+  return s;
 }
 
 export function saveSettings(s: Settings): void {
